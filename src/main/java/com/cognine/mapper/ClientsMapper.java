@@ -8,7 +8,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
-import com.cognine.model.ClientBillingType;
+//import com.cognine.model.ClientBillingType;
 import com.cognine.model.Clients;
 import com.cognine.model.ClientsFilter;
 import com.cognine.model.RoleBasedClients;
@@ -106,8 +106,8 @@ public interface ClientsMapper {
 	@Select(getOtherRolesClients)
 	List<Clients> getOtherRolesClients(RoleBasedClients roleBasedClients);
 
-	@Select(getClientBillingTypes)
-	List<ClientBillingType> getClientBillingTypes();
+	// @Select(getClientBillingTypes)
+	// List<ClientBillingType> getClientBillingTypes();
 	
 	@Select(getProjectManagerRoleClients)
 	List<Clients> getProjectManagerRoleClients(RoleBasedClients roleBasedClients);
