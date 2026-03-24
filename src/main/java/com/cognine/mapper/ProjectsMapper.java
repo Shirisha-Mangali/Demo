@@ -111,6 +111,8 @@ public interface ProjectsMapper {
 			+ "createdat,updatedat) " + "values(#{employeeId},#{roleId},#{projectId},#{availableResource.startDate}, "
 			+ "#{availableResource.endDate},#{availableResource.allocatePercentage}, "
 			+ "#{billableAllocation},now(),now()) ";
+
+			
 	public String isResourceAllocationExists = "select count(1) from project_resources where employeeid = #{employeeId} "
 			+ "and projectid = #{projectId} and startdate = #{startDate} and (enddate = #{endDate} or enddate is null) ";
 	public String updateResourceAllocation = "UPDATE project_resources "
