@@ -509,194 +509,26 @@ public class TimelineServiceImpl implements TimelineService {
 //     return resultList;
 // }
 
-
-@Override
-public PbiTimeLineData getAllPbiTimelineData(int sprintId, Integer projectId) {
-    Status status = Status.FAILED;
-    Map<Integer, PbiTimeline> result = new HashMap<>();
-    PbiTimeLineData resultList = new PbiTimeLineData();
-    List<PbiTimeline> pbiTimelinedata = timelineDao.getAllPbiTimelineData(sprintId);
-    List<HolidaysData> holidaysList = timelineDao.getHolidaysList(sprintId);
-    if (projectId != null) {
-        TimelineExcelData data = timelineDao.getLastInsertedTimelineDataByProjectId(projectId);
-        if (data != null) {
-            resultList.setLastTimelineGeneratedAt(data.getTimelineDate());
-            if (excelHepler.isToday(data.getTimelineDate())) {
-                resultList.setIsTimelineFinalized(true);
-            } else {
-                resultList.setIsTimelineFinalized(false);
-            }
-        }
-    }
- 
-    if (!(pbiTimelinedata.isEmpty()) || !(holidaysList.isEmpty())) {
-        resultList.setSprintId(sprintId);
-        Map<String, PbiResource> resourceResult = new HashMap<String, PbiResource>();
-        for (PbiTimeline pbiTimeline : pbiTimelinedata) {
-            if (result.get(pbiTimeline.getPbiId()) == null) {
-                PbiTimeline timelineData = new PbiTimeline();
-                result.put(pbiTimeline.getPbiId(), timelineData);
-                result.get(pbiTimeline.getPbiId()).setPbiId(pbiTimeline.getPbiId());
-                result.get(pbiTimeline.getPbiId()).setPbiType(pbiTimeline.getPbiType());
-                result.get(pbiTimeline.getPbiId()).setDescription(pbiTimeline.getDescription());
-                result.get(pbiTimeline.getPbiId()).setPbiTitle(pbiTimeline.getPbiTitle());
-                result.get(pbiTimeline.getPbiId()).setStatus(pbiTimeline.getStatus());
-                result.get(pbiTimeline.getPbiId()).setStatusName(pbiTimeline.getStatusName());
-                result.get(pbiTimeline.getPbiId()).setStoryPoints(pbiTimeline.getStoryPoints());
-                result.get(pbiTimeline.getPbiId()).setExpectedHours(pbiTimeline.getExpectedHours());
-                result.get(pbiTimeline.getPbiId()).setActualHours(pbiTimeline.getActualHours());
-                result.get(pbiTimeline.getPbiId()).setGivenPbiId(pbiTimeline.getGivenPbiId());
-                result.get(pbiTimeline.getPbiId()).setPriority(pbiTimeline.getPriority());
-                result.get(pbiTimeline.getPbiId())
-                        .setTimelineNotes(timelineDao.getTimelineNotes(pbiTimeline.getPbiId()));
- 
-                if (pbiTimeline.getPbiResource() != null) {
- 
-                    // Block 1 — build resources object
-                    PbiResource resources = new PbiResource();
-                    resources.setResourceId(pbiTimeline.getPbiResource().getResourceId());
-                    resources.setResourceName(pbiTimeline.getPbiResource().getResourceName());
-                    resources.setResourceRole(pbiTimeline.getPbiResource().getResourceRole());
-                    resources.setIsBillable(pbiTimeline.getPbiResource().getIsBillable());
-                    resources.setStartDate(pbiTimeline.getPbiResource().getStartDate()); //ADD
-                    resources.setEndDate(pbiTimeline.getPbiResource().getEndDate());     //ADD
-                    pbiTimeline.getResources().add(resources);
- 
-                    List<PbiResource> pbiResources = pbiTimeline.getResources();
-                    if (!pbiResources.isEmpty()) {
-                        for (PbiResource resource : pbiResources) {
-                            if (resourceResult
-                                    .get(resource.getResourceId() + "-" + pbiTimeline.getPbiId()) == null) {
-                             if (resource.getResourceId() != 0) {
-    PbiResource resourceData = new PbiResource();
-    resourceResult.put(resource.getResourceId() + "-" + pbiTimeline.getPbiId(), resourceData);
-
-    resourceData.setResourceId(resource.getResourceId());
-    resourceData.setResourceName(resource.getResourceName());
-    resourceData.setResourceRole(resource.getResourceRole());
-    resourceData.setIsBillable(resource.getIsBillable());
-    resourceData.setStartDate(resource.getStartDate());
-    resourceData.setEndDate(resource.getEndDate());
-
-    // use method-level sprintId, NOT pbiTimeline.getSprintId()
-    List<ProjectResourceAllocation> periods = timelineDao.getResourceAllocations(
-            resource.getResourceId(), sprintId);
-    resourceData.setAllocationPeriods(periods);
-
-    PbiDays pbiDay = new PbiDays();
-    pbiDay.setDate(pbiTimeline.getDate());
-    pbiDay.setHours(pbiTimeline.getHours());
-    pbiDay.setId(pbiTimeline.getDayId());
-    resourceData.getDays().add(pbiDay);
-    resourceData.setDays(resourceData.getDays().stream()
-            .sorted(Comparator.comparing(PbiDays::getDate))
-            .collect(Collectors.toList()));
-
-    result.get(pbiTimeline.getPbiId()).getResources().add(resourceData); // only ONCE
-}
-                            } else {
-                                PbiDays pbiDay = new PbiDays();
-                                pbiDay.setDate(pbiTimeline.getDate());
-                                pbiDay.setHours(pbiTimeline.getHours());
-                                pbiDay.setId(pbiTimeline.getDayId());
- 
-                                resourceResult.get(resource.getResourceId() + "-" + pbiTimeline.getPbiId())
-                                        .getDays().add(pbiDay);
- 
-                                resourceResult.get(resource.getResourceId() + "-" + pbiTimeline.getPbiId())
-                                        .setDays(resourceResult
-                                                .get(resource.getResourceId() + "-" + pbiTimeline.getPbiId())
-                                                .getDays().stream().sorted(Comparator.comparing(PbiDays::getDate))
-                                                .collect(Collectors.toList()));
-                            }
-                        }
-                    }
-                }
-            } else {
-                if (pbiTimeline.getPbiResource() != null) {
- 
-                    // Block 3 — existing PBI, build resources object
-                    PbiResource resources = new PbiResource();
-                    resources.setResourceId(pbiTimeline.getPbiResource().getResourceId());
-                    resources.setResourceName(pbiTimeline.getPbiResource().getResourceName());
-                    resources.setResourceRole(pbiTimeline.getPbiResource().getResourceRole());
-                    resources.setIsBillable(pbiTimeline.getPbiResource().getIsBillable());
-                    resources.setStartDate(pbiTimeline.getPbiResource().getStartDate()); //  ADD
-                    resources.setEndDate(pbiTimeline.getPbiResource().getEndDate());     //  ADD
- 
-                    pbiTimeline.getResources().add(resources);
-                    List<PbiResource> pbiResources = pbiTimeline.getResources();
- 
-                    for (PbiResource resource : pbiResources) {
-                        if (resourceResult.get(resource.getResourceId() + "-" + pbiTimeline.getPbiId()) == null) {
-                            if (resource.getResourceId() != 0) {
-    PbiResource resourceData = new PbiResource();
-    resourceResult.put(resource.getResourceId() + "-" + pbiTimeline.getPbiId(), resourceData);
-
-    resourceData.setResourceId(resource.getResourceId());
-    resourceData.setResourceName(resource.getResourceName());
-    resourceData.setResourceRole(resource.getResourceRole());
-    resourceData.setIsBillable(resource.getIsBillable());
-    resourceData.setStartDate(resource.getStartDate());
-    resourceData.setEndDate(resource.getEndDate());
-
-    //  use method-level sprintId, NOT pbiTimeline.getSprintId()
-    List<ProjectResourceAllocation> periods = timelineDao.getResourceAllocations(
-            resource.getResourceId(), sprintId);
-    resourceData.setAllocationPeriods(periods);
-
-    PbiDays pbiDay = new PbiDays();
-    pbiDay.setDate(pbiTimeline.getDate());
-    pbiDay.setHours(pbiTimeline.getHours());
-    pbiDay.setId(pbiTimeline.getDayId());
-    resourceData.getDays().add(pbiDay);
-    resourceData.setDays(resourceData.getDays().stream()
-            .sorted(Comparator.comparing(PbiDays::getDate))
-            .collect(Collectors.toList()));
-
-    result.get(pbiTimeline.getPbiId()).getResources().add(resourceData); // only ONCE
-}
-                        } else {
-                            PbiDays pbiDay = new PbiDays();
-                            pbiDay.setDate(pbiTimeline.getDate());
-                            pbiDay.setHours(pbiTimeline.getHours());
-                            pbiDay.setId(pbiTimeline.getDayId());
-                            resourceResult.get(resource.getResourceId() + "-" + pbiTimeline.getPbiId()).getDays()
-                                    .add(pbiDay);
- 
-                            resourceResult.get(resource.getResourceId() + "-" + pbiTimeline.getPbiId())
-                                    .setDays(resourceResult
-                                            .get(resource.getResourceId() + "-" + pbiTimeline.getPbiId()).getDays()
-                                            .stream().sorted(Comparator.comparing(PbiDays::getDate))
-                                            .collect(Collectors.toList()));
-                        }
-                    }
+    @Override
+    public PbiTimeLineData getAllPbiTimeLineData(int sprintId, Integer projectId){
+        Status status=Status.FAILED;
+        Map<Integer,PbiTimeline> result=new HashMap<>();
+        PbiTimeLineData resultList=new PbiTimeLineData();
+        List<PbiTimeline> pbiTimeLinedata=timelineDao.getAllPbiTimelineData(sprintId);
+        List<HolidaysData> holidaysList=timelineDao.getHolidaysList(sprintId);
+        if(projectId!=null){
+            TimelineExcelData data=timelineDao.getLastInsertedTimelineDataByProjectId(sprintId);
+            if(data!=null){
+                resultList.setLastTimeGeneratedAt(data.getTimeLineDate());
+                if(excelHepler.isToday(data.getTimelineDate())){
+                    resultList.setIsTimelineFinalized(true);
+                }else{
+                    resultList.setTimelineFinalized(false);
                 }
             }
         }
- 
-        List<PbiTimeline> pbi = new ArrayList<PbiTimeline>();
-        for (int key : result.keySet()) {
-            pbi.add(result.get(key));
-            resultList.setPbiTimeLine(pbi);
-        }
-        resultList.setPbiTimeLine(resultList.getPbiTimeLine().stream()
-                .sorted(Comparator.comparingInt(PbiTimeline::getPriority)).collect(Collectors.toList()));
- 
-        for (PbiTimeline pbiTimeline : resultList.getPbiTimeLine()) {
-            pbiTimeline.setPbiResource(null);
-        }
-        status = Status.SUCCESS;
-    } else {
-        status = Status.NO_RECORDS_FOUND;
     }
-    resultList.setHolidaysData(timelineDao.getHolidaysList());
-    resultList.setDateWiseResourceTotalList(timelineDao.getDateWiseResourceTotal(sprintId));
-    resultList.setStatus(status);
-    if (resultList.getPbiTimeLine() != null)
-        sortTimelineDataByRoleLevel(resultList);
-    return resultList;
-}
+
  
  
 
